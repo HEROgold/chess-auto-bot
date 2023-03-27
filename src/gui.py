@@ -648,8 +648,3 @@ class GUI:
             self.manual_mode_frame.pack_forget()
             self.manual_mode_checkbox.update()
 
-
-if __name__ == "__main__":
-    window = tk.Tk()
-    my_gui = GUI(window)
-    window.mainloop()

@@ -70,6 +70,7 @@ class OverlayScreen(QWidget):
             painter.drawPolygon(arrow)
         painter.end()
 
+    # TODO: Catch and handle specific errors
     @staticmethod
     def get_arrow_polygon(start_point, end_point) -> Any:
         """
@@ -80,56 +81,52 @@ class OverlayScreen(QWidget):
         Returns:
             A QPolygon object containing the points of the arrow
         """
-        try:
-            (dx, dy) = (
-                start_point.x() - end_point.x(),
-                start_point.y() - end_point.y(),
-            )
-            leng = math.sqrt(dx**2 + dy**2)
-            (norm_x, norm_y) = (dx / leng, dy / leng)
-            perp_x = -norm_y
-            perp_y = norm_x
-            arrow_height = 25
-            left_x = end_point.x() + arrow_height * norm_x * 1.5 + arrow_height * perp_x
-            left_y = end_point.y() + arrow_height * norm_y * 1.5 + arrow_height * perp_y
-            right_x = (
-                end_point.x() + arrow_height * norm_x * 1.5 - arrow_height * perp_x
-            )
-            right_y = (
-                end_point.y() + arrow_height * norm_y * 1.5 - arrow_height * perp_y
-            )
-            point2 = QPoint(int(left_x), int(left_y))
-            point3 = QPoint(int(right_x), int(right_y))
-            mid_point1 = QPoint(
-                int(2 / 5 * point2.x() + 3 / 5 * point3.x()),
-                int(2 / 5 * point2.y() + 3 / 5 * point3.y()),
-            )
-            mid_point2 = QPoint(
-                int(3 / 5 * point2.x() + 2 / 5 * point3.x()),
-                int(3 / 5 * point2.y() + 2 / 5 * point3.y()),
-            )
-            start_left = QPoint(
-                int(start_point.x() + arrow_height / 5 * perp_x),
-                int(start_point.y() + arrow_height / 5 * perp_y),
-            )
-            start_right = QPoint(
-                int(start_point.x() - arrow_height / 5 * perp_x),
-                int(start_point.y() - arrow_height / 5 * perp_y),
-            )
-            return QPolygon(
-                [
-                    end_point,
-                    point2,
-                    mid_point1,
-                    start_right,
-                    start_left,
-                    mid_point2,
-                    point3,
-                ]
-            )
-        except Exception as e:
-            print(e)
-
+        (dx, dy) = (
+            start_point.x() - end_point.x(),
+            start_point.y() - end_point.y(),
+        )
+        length = math.sqrt(dx**2 + dy**2)
+        (norm_x, norm_y) = (dx / length, dy / length)
+        perp_x = -norm_y
+        perp_y = norm_x
+        arrow_height = 25
+        left_x = end_point.x() + arrow_height * norm_x * 1.5 + arrow_height * perp_x
+        left_y = end_point.y() + arrow_height * norm_y * 1.5 + arrow_height * perp_y
+        right_x = (
+            end_point.x() + arrow_height * norm_x * 1.5 - arrow_height * perp_x
+        )
+        right_y = (
+            end_point.y() + arrow_height * norm_y * 1.5 - arrow_height * perp_y
+        )
+        point2 = QPoint(int(left_x), int(left_y))
+        point3 = QPoint(int(right_x), int(right_y))
+        mid_point1 = QPoint(
+            int(2 / 5 * point2.x() + 3 / 5 * point3.x()),
+            int(2 / 5 * point2.y() + 3 / 5 * point3.y()),
+        )
+        mid_point2 = QPoint(
+            int(3 / 5 * point2.x() + 2 / 5 * point3.x()),
+            int(3 / 5 * point2.y() + 2 / 5 * point3.y()),
+        )
+        start_left = QPoint(
+            int(start_point.x() + arrow_height / 5 * perp_x),
+            int(start_point.y() + arrow_height / 5 * perp_y),
+        )
+        start_right = QPoint(
+            int(start_point.x() - arrow_height / 5 * perp_x),
+            int(start_point.y() - arrow_height / 5 * perp_y),
+        )
+        return QPolygon(
+            [
+                end_point,
+                point2,
+                mid_point1,
+                start_right,
+                start_left,
+                mid_point2,
+                point3,
+            ]
+        )
 
 def run(stockfish_queue) -> None:
     """

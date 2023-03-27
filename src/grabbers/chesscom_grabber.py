@@ -78,19 +78,20 @@ class ChesscomGrabber(Grabber):
             move_list_elem = self.chrome.find_element(By.TAG_NAME, "vertical-move-list")
         except NoSuchElementException:
             return None
-
         # Select all children with class containing "white node" or "black node"
         # Moves that are not pawn moves have a different structure
         # containing children
-        if not self.moves_list:
-            # If the moves list is empty, find all moves
-            moves = move_list_elem.find_elements(By.CSS_SELECTOR, "div.move [data-ply]")
-        else:
-            # If the moves list is not empty, find only the new moves
-            moves = move_list_elem.find_elements(
+        # If the moves list is not empty, find only the new moves
+        # If the moves list is empty, find all moves
+        moves = (
+            move_list_elem.find_elements(
                 By.CSS_SELECTOR, "div.move [data-ply]:not([data-processed])"
             )
-
+            if self.moves_list
+            else move_list_elem.find_elements(
+                By.CSS_SELECTOR, "div.move [data-ply]"
+            )
+        )
         for move in moves:
             move_class = move.get_attribute("class")
 

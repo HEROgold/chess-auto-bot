@@ -21,7 +21,7 @@ class StockfishBot(multiprocess.Process):
         chrome_session_id,
         website,
         pipe, # multiprocess.Pipe
-        overlay_queue, # multiprocces.Queue
+        overlay_queue, # multiprocess.Queue
         stockfish_path,
         enable_manual_mode,
         enable_mouseless_mode,

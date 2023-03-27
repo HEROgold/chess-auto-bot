@@ -124,8 +124,10 @@ class ChesscomGrabber(Grabber):
 
     @staticmethod
     def click_puzzle_next() -> None:
+        # TODO document why this method is empty
         pass
 
     @staticmethod
     def make_mouseless_move(move, move_count) -> None:
+        # TODO document why this method is empty
         pass

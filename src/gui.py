@@ -14,9 +14,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 from overlay import run
 from stockfish_bot import StockfishBot
 
+open_browser_text = "Open Browser"
 
 class GUI:
-    def __init__(self, master) -> None:
+    def __init__(self, master: tk.Tk) -> None:
         self.master = master
 
         # Used for closing the threads
@@ -81,7 +82,7 @@ class GUI:
         self.opened_browser = False
         self.open_browser_button = tk.Button(
             left_frame,
-            text="Open Browser",
+            text=open_browser_text,
             command=self.on_open_browser_button_listener,
         )
         self.open_browser_button.pack(anchor=tk.NW)
@@ -319,7 +320,7 @@ class GUI:
             time.sleep(0.1)
 
     # Detects if Selenium Chromedriver is running
-    def browser_checker_thread(self):
+    def browser_checker_thread(self) -> None:
         while not self.exit:
             try:
                 if (
@@ -331,7 +332,7 @@ class GUI:
                     self.opened_browser = False
 
                     # Set Opening Browser button state to closed
-                    self.open_browser_button["text"] = "Open Browser"
+                    self.open_browser_button["text"] = open_browser_text
                     self.open_browser_button["state"] = "normal"
                     self.open_browser_button.update()
 
@@ -405,7 +406,7 @@ class GUI:
                         tk.messagebox.showerror("Error", "Cant find moves list!")
                     elif data[:12] == "ERR_GAMEOVER":
                         tk.messagebox.showerror("Error", "Game has already finished!")
-            except (BrokenPipeError, OSError):
+            except OSError:
                 self.stockfish_bot_pipe = None
 
             time.sleep(0.1)
@@ -442,7 +443,7 @@ class GUI:
         except WebDriverException:
             # No chrome installed
             self.opening_browser = False
-            self.open_browser_button["text"] = "Open Browser"
+            self.open_browser_button["text"] = open_browser_text
             self.open_browser_button["state"] = "normal"
             self.open_browser_button.update()
             tk.messagebox.showerror(

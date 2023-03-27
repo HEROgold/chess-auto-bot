@@ -119,15 +119,10 @@ class StockfishBot(multiprocess.Process):
 
     def wait_for_gui_to_delete(self) -> None:
         while self.pipe.recv() != "DELETE":
-            pass
+            pass # NOSONAR
 
-    def run(self) -> None:
-        if self.website == "chesscom":
-            self.grabber = ChesscomGrabber(self.chrome_url, self.chrome_session_id)
-        else:
-            self.grabber = LichessGrabber(self.chrome_url, self.chrome_session_id)
-
-        # Initialize Stockfish
+    def _init_stockfish(self) -> None:
+        """Initialize Stockfish"""
         parameters = {
             "Threads": self.cpu_threads,
             "Hash": self.memory,
@@ -136,7 +131,7 @@ class StockfishBot(multiprocess.Process):
             "Skill Level": self.skill_level,
         }
         try:
-            stockfish = Stockfish(
+            return Stockfish(
                 path=self.stockfish_path,
                 depth=self.stockfish_depth,
                 parameters=parameters,
@@ -148,172 +143,186 @@ class StockfishBot(multiprocess.Process):
             self.pipe.send("ERR_EXE")
             return
 
-        try:
-            # Return if the board element is not found
-            self.grabber.update_board_elem()
-            if self.grabber.get_board() is None:
-                self.pipe.send("ERR_BOARD")
-                return
+    def _check_board(self) -> bool:
+        # Return if the board element is not found
+        self.grabber.update_board_elem()
+        return self.grabber.get_board() is not None
 
-            # Find out what color the player has
-            self.is_white = self.grabber.is_white()
-            if self.is_white is None:
-                self.pipe.send("ERR_COLOR")
-                return
+    def _check_starting_position(self) -> list | None:
+        # Get the starting position
+        # Return if the starting position is not found
+        move_list = self.grabber.get_move_list()
+        if move_list is None:
+            self.pipe.send("ERR_MOVES")
+            return None
+        return move_list
 
-            # Get the starting position
-            # Return if the starting position is not found
-            move_list = self.grabber.get_move_list()
-            if move_list is None:
-                self.pipe.send("ERR_MOVES")
-                return
+    def _check_is_white(self) -> bool:
+        self.is_white = self.grabber.is_white()
+        return self.is_white is not None
 
-            # Check if the game is over
-            score_pattern = r"([0-9]+)\-([0-9]+)"
-            if len(move_list) > 0 and re.match(score_pattern, move_list[-1]):
-                self.pipe.send("ERR_GAMEOVER")
-                return
+    def _check_game_over(self, move_list: list) -> bool:
+        # Check if the game is over
+        score_pattern = r"(\d+)\-(\d+)"
+        if move_list and re.match(score_pattern, move_list[-1]):
+            self.pipe.send("ERR_GAMEOVER")
+            return False
+        return True
 
-            # Update the board with the starting position
-            board = chess.Board()
-            for move in move_list:
-                board.push_san(move)
-            move_list_uci = [move.uci() for move in board.move_stack]
+    def _move_board(self, board: chess.Board, move_list: list) -> list:
+        # Update the board with the starting position
+        for move in move_list:
+            board.push_san(move)
+        return [move.uci() for move in board.move_stack]
 
-            # Update Stockfish with the starting position
-            stockfish.set_position(move_list_uci)
+    def _send_restart(self) -> None:
+        self.grabber.click_puzzle_next()
+        self.pipe.send("RESTART")
+        self.wait_for_gui_to_delete()
 
-            # Notify GUI that bot is ready
-            self.pipe.send("START")
+    def run(self) -> None:
+        if self.website == "chesscom":
+            self.grabber = ChesscomGrabber(self.chrome_url, self.chrome_session_id)
+        else:
+            self.grabber = LichessGrabber(self.chrome_url, self.chrome_session_id)
 
-            # Send the first moves to the GUI (if there are any)
-            if len(move_list) > 0:
-                self.pipe.send("M_MOVE" + ",".join(move_list))
+        stockfish: Stockfish = self._init_stockfish()
 
-            # Start the game loop
-            while True:
-                # Act if it is the player's turn
-                if (self.is_white and board.turn == chess.WHITE) or (
-                    not self.is_white and board.turn == chess.BLACK
-                ):
-                    # Think of a move
-                    move = None
-                    move_count = len(board.move_stack)
-                    if self.bongcloud and move_count <= 3:
-                        if move_count == 0:
-                            move = "e2e3"
-                        elif move_count == 1:
-                            move = "e7e6"
-                        elif move_count == 2:
-                            move = "e1e2"
-                        elif move_count == 3:
-                            move = "e8e7"
+        if self._check_board() == False:
+            self.pipe.send("ERR_BOARD")
+            return
 
-                        # Hardcoded bongcloud move is not legal,
-                        # so find a legal move
-                        if not board.is_legal(chess.Move.from_uci(move)):
-                            move = stockfish.get_best_move()
-                    else:
-                        move = stockfish.get_best_move()
+        if self._check_is_white() == False:
+            self.pipe.send("ERR_COLOR")
+            return
 
-                    # Wait for keypress or player movement if in manual mode
-                    self_moved = False
-                    if self.enable_manual_mode:
-                        move_start_pos, move_end_pos = self.get_move_pos(move)
-                        self.overlay_queue.put(
-                            [
-                                (
-                                    (int(move_start_pos[0]), int(move_start_pos[1])),
-                                    (int(move_end_pos[0]), int(move_end_pos[1])),
-                                ),
-                            ]
-                        )
-                        while True:
-                            if keyboard.is_pressed("3"):
-                                break
+        move_list = self._check_starting_position()
+        if not move_list:
+            self.pipe.send("ERR_MOVES")
+            return
 
-                            if len(move_list) != len(self.grabber.get_move_list()):
-                                self_moved = True
-                                move_list = self.grabber.get_move_list()
-                                move_san = move_list[-1]
-                                move = board.parse_san(move_san).uci()
-                                board.push_uci(move)
-                                stockfish.make_moves_from_current_position([move])
-                                break
+        if self._check_game_over(move_list) == False:
+            self.pipe.send("ERR_GAMEOVER")
+            return
 
-                    if not self_moved:
-                        move_san = board.san(
-                            chess.Move(
-                                chess.parse_square(move[0:2]),
-                                chess.parse_square(move[2:4]),
-                            )
-                        )
+        board = chess.Board()
+        move_list_uci = self._move_board(board, move_list)
+
+        # Update Stockfish with the starting position
+        stockfish.set_position(move_list_uci)
+
+        # Notify GUI that bot is ready
+        self.pipe.send("START")
+
+        # Send the first moves to the GUI (if there are any)
+        if len(move_list) > 0:
+            self.pipe.send("M_MOVE" + ",".join(move_list))
+
+        # Start the game loop
+        while True:
+            # Think of a move
+            move = None
+            move_count = len(board.move_stack)
+            if self.bongcloud and move_count <= 3:
+                if move_count == 0:
+                    move = "e2e3"
+                elif move_count == 1:
+                    move = "e7e6"
+                elif move_count == 2:
+                    move = "e1e2"
+                elif move_count == 3:
+                    move = "e8e7"
+
+                # Hardcoded bongcloud move is not legal,
+                # so find a legal move
+                if not board.is_legal(chess.Move.from_uci(move)):
+                    move = stockfish.get_best_move()
+            else:
+                move = stockfish.get_best_move()
+
+            # Wait for keypress or player movement if in manual mode
+            self_moved = False
+            if self.enable_manual_mode:
+                move_start_pos, move_end_pos = self.get_move_pos(move)
+                self.overlay_queue.put(
+                    [
+                        (
+                            (int(move_start_pos[0]), int(move_start_pos[1])),
+                            (int(move_end_pos[0]), int(move_end_pos[1])),
+                        ),
+                    ]
+                )
+                while not keyboard.is_pressed("3"):
+                    if len(move_list) != len(self.grabber.get_move_list()):
+                        self_moved = True
+                        move_list = self.grabber.get_move_list()
+                        move_san = move_list[-1]
+                        move = board.parse_san(move_san).uci()
                         board.push_uci(move)
                         stockfish.make_moves_from_current_position([move])
-                        move_list.append(move_san)
-                        if (
-                            self.enable_mouseless_mode
-                            and not self.grabber.is_game_puzzles()
-                        ):
-                            self.grabber.make_mouseless_move(move, move_count + 1)
-                        else:
-                            self.make_move(move)
-
-                    self.overlay_queue.put([])
-
-                    # Send the move to the GUI
-                    self.pipe.send("S_MOVE" + move_san)
-
-                    # Check if the game is over
-                    if board.is_checkmate():
-                        # Send restart message to GUI
-                        if (
-                            self.enable_non_stop_puzzles
-                            and self.grabber.is_game_puzzles()
-                        ):
-                            self.grabber.click_puzzle_next()
-                            self.pipe.send("RESTART")
-                            self.wait_for_gui_to_delete()
-                        return
-
-                    time.sleep(0.1)
-
-                # Wait for a response from the opponent
-                # by finding the differences between
-                # the previous and current position
-                previous_move_list = move_list.copy()
-                while True:
-                    if self.grabber.is_game_over():
-                        # Send restart message to GUI
-                        if (
-                            self.enable_non_stop_puzzles
-                            and self.grabber.is_game_puzzles()
-                        ):
-                            self.grabber.click_puzzle_next()
-                            self.pipe.send("RESTART")
-                            self.wait_for_gui_to_delete()
-                        return
-                    move_list = self.grabber.get_move_list()
-                    if move_list is None:
-                        return
-                    if len(move_list) > len(previous_move_list):
                         break
 
-                # Get the move that the opponent made
-                move = move_list[-1]
-                self.pipe.send("S_MOVE" + move)
-                board.push_san(move)
-                stockfish.make_moves_from_current_position([str(board.peek())])
-                if board.is_checkmate():
-                    # Send restart message to GUI
-                    if self.enable_non_stop_puzzles and self.grabber.is_game_puzzles():
-                        self.grabber.click_puzzle_next()
-                        self.pipe.send("RESTART")
-                        self.wait_for_gui_to_delete()
+            if not self_moved:
+                move_san = board.san(
+                    chess.Move(
+                        chess.parse_square(move[:2]),
+                        chess.parse_square(move[2:4]),
+                    )
+                )
+                board.push_uci(move)
+                stockfish.make_moves_from_current_position([move])
+                move_list.append(move_san)
+                if (
+                    self.enable_mouseless_mode
+                    and not self.grabber.is_game_puzzles()
+                ):
+                    self.grabber.make_mouseless_move(move, move_count + 1)
+                else:
+                    self.make_move(move)
 
+            self.overlay_queue.put([])
+
+            # Send the move to the GUI
+            self.pipe.send(f"S_MOVE{move_san}")
+
+            # Check if the game is over
+            if board.is_checkmate():
+                # Send restart message to GUI
+                if (
+                    self.enable_non_stop_puzzles
+                    and self.grabber.is_game_puzzles()
+                ):
+                    self._send_restart()
+                return
+
+            time.sleep(0.1)
+
+            # Wait for a response from the opponent
+            # by finding the differences between
+            # the previous and current position
+            previous_move_list = move_list.copy()
+            while True:
+                if self.grabber.is_game_over():
+                    # Send restart message to GUI
+                    if (
+                        self.enable_non_stop_puzzles
+                        and self.grabber.is_game_puzzles()
+                    ):
+                        self._send_restart()
                     return
-        except Exception as e:
-            print(e)
-            exc_type, _, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno)
+                move_list = self.grabber.get_move_list()
+                if move_list is None:
+                    return
+                if len(move_list) > len(previous_move_list):
+                    break
+
+            # Get the move that the opponent made
+            move = move_list[-1]
+            self.pipe.send(f"S_MOVE{move}")
+            board.push_san(move)
+            stockfish.make_moves_from_current_position([str(board.peek())])
+            if board.is_checkmate():
+                # Send restart message to GUI
+                if self.enable_non_stop_puzzles and self.grabber.is_game_puzzles():
+                    self._send_restart()
+                return

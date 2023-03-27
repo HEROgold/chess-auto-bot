@@ -358,54 +358,57 @@ class GUI:
     def process_communicator_thread(self) -> None:
         while not self.exit:
             try:
-                if (
+                if not (
                     self.stockfish_bot_pipe is not None
                     and self.stockfish_bot_pipe.poll()
                 ):
-                    data = self.stockfish_bot_pipe.recv()
-                    if data == "START":
-                        self.clear_tree()
-                        self.match_moves = []
+                    continue
+                
+                # TODO: change to match case
+                data = self.stockfish_bot_pipe.recv()
+                if data == "START":
+                    self.clear_tree()
+                    self.match_moves = []
 
-                        # Update the status text
-                        self.status_text["text"] = "Running"
-                        self.status_text["fg"] = "green"
-                        self.status_text.update()
+                    # Update the status text
+                    self.status_text["text"] = "Running"
+                    self.status_text["fg"] = "green"
+                    self.status_text.update()
 
-                        # Update the run button
-                        self.start_button["text"] = "Stop"
-                        self.start_button["state"] = "normal"
-                        self.start_button["command"] = self.on_stop_button_listener
-                        self.start_button.update()
-                    elif data[:7] == "RESTART":
-                        self.restart_after_stopping = True
-                        self.stockfish_bot_pipe.send("DELETE")
-                    elif data[:6] == "S_MOVE":
-                        move = data[6:]
-                        self.match_moves.append(move)
-                        self.insert_move(move)
-                        self.tree.yview_moveto(1)
-                    elif data[:6] == "M_MOVE":
-                        moves = data[6:].split(",")
-                        self.match_moves += moves
-                        self.set_moves(moves)
-                        self.tree.yview_moveto(1)
-                    elif data[:7] == "ERR_EXE":
-                        tk.messagebox.showerror(
-                            "Error", "Stockfish path provided is not valid!"
-                        )
-                    elif data[:8] == "ERR_PERM":
-                        tk.messagebox.showerror(
-                            "Error", "Stockfish path provided is not executable!"
-                        )
-                    elif data[:9] == "ERR_BOARD":
-                        tk.messagebox.showerror("Error", "Cant find board!")
-                    elif data[:9] == "ERR_COLOR":
-                        tk.messagebox.showerror("Error", "Cant find player color!")
-                    elif data[:9] == "ERR_MOVES":
-                        tk.messagebox.showerror("Error", "Cant find moves list!")
-                    elif data[:12] == "ERR_GAMEOVER":
-                        tk.messagebox.showerror("Error", "Game has already finished!")
+                    # Update the run button
+                    self.start_button["text"] = "Stop"
+                    self.start_button["state"] = "normal"
+                    self.start_button["command"] = self.on_stop_button_listener
+                    self.start_button.update()
+                elif data[:7] == "RESTART":
+                    self.restart_after_stopping = True
+                    self.stockfish_bot_pipe.send("DELETE")
+                elif data[:6] == "S_MOVE":
+                    move = data[6:]
+                    self.match_moves.append(move)
+                    self.insert_move(move)
+                    self.tree.yview_moveto(1)
+                elif data[:6] == "M_MOVE":
+                    moves = data[6:].split(",")
+                    self.match_moves += moves
+                    self.set_moves(moves)
+                    self.tree.yview_moveto(1)
+                elif data[:7] == "ERR_EXE":
+                    tk.messagebox.showerror(
+                        "Error", "Stockfish path provided is not valid!"
+                    )
+                elif data[:8] == "ERR_PERM":
+                    tk.messagebox.showerror(
+                        "Error", "Stockfish path provided is not executable!"
+                    )
+                elif data[:9] == "ERR_BOARD":
+                    tk.messagebox.showerror("Error", "Cant find board!")
+                elif data[:9] == "ERR_COLOR":
+                    tk.messagebox.showerror("Error", "Cant find player color!")
+                elif data[:9] == "ERR_MOVES":
+                    tk.messagebox.showerror("Error", "Cant find moves list!")
+                elif data[:12] == "ERR_GAMEOVER":
+                    tk.messagebox.showerror("Error", "Game has already finished!")
             except OSError:
                 self.stockfish_bot_pipe = None
 

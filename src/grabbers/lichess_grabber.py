@@ -4,7 +4,7 @@ from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
-from grabbers.grabber import Grabber
+from .grabber import Grabber
 
 
 class LichessGrabber(Grabber):

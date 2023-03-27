@@ -11,8 +11,8 @@ from selenium.common import WebDriverException
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from overlay import run
-from stockfish_bot import StockfishBot
+from .overlay import run
+from .stockfish_bot import StockfishBot
 
 open_browser_text = "Open Browser"
 

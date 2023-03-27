@@ -2,7 +2,7 @@ from typing import Literal
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 
-from grabbers.grabber import Grabber
+from .grabber import Grabber
 
 
 class ChesscomGrabber(Grabber):

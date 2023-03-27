@@ -9,9 +9,9 @@ import multiprocess
 import pyautogui
 from stockfish import Stockfish
 
-from grabbers.chesscom_grabber import ChesscomGrabber
-from grabbers.lichess_grabber import LichessGrabber
-from utilities import char_to_num
+from .grabbers.chesscom_grabber import ChesscomGrabber
+from .grabbers.lichess_grabber import LichessGrabber
+from .utilities import char_to_num
 
 
 class StockfishBot(multiprocess.Process):

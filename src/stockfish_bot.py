@@ -216,7 +216,7 @@ class StockfishBot(multiprocess.Process):
         # Send the first moves to the GUI (if there are any)
         if len(move_list) > 0:
             self.pipe.send("M_MOVE" + ",".join(move_list))
-        self._game_loop(board, stockfish)
+        self._game_loop(board, stockfish, move_list)
 
     def _think_move(self, board: chess.Board, stockfish: Stockfish) -> tuple[str, int]:
         """think of move to make"""
@@ -242,7 +242,8 @@ class StockfishBot(multiprocess.Process):
     def _game_loop(
             self,
             board: chess.Board,
-            stockfish: Stockfish
+            stockfish: Stockfish,
+            move_list: list
         ) -> None:
         """Start the game loop"""
         while True:

@@ -1,20 +1,21 @@
+from typing import Any
 from selenium import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
 
 
 # Converts a chess character into an int
 # Examples: a -> 1, b -> 2, h -> 8, etc.
-def char_to_num(char):
+def char_to_num(char) -> int:
     return ord(char) - ord("a") + 1
 
 
 # Attaches to a running webdriver
 # Returns the webdriver
 # Taken from https://stackoverflow.com/a/48194907/5868441
-def attach_to_session(executor_url, session_id):
+def attach_to_session(executor_url, session_id) -> WebDriver:
     original_execute = WebDriver.execute
 
-    def new_command_execute(self, command, params=None):
+    def new_command_execute(self, command, params=None)-> dict[str, Any] | dict:
         if command == "newSession":
             # Mock the response
             return {"success": 0, "value": None, "sessionId": session_id}

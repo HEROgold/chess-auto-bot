@@ -1,6 +1,7 @@
 import math
 import sys
 import threading
+from typing import Any, NoReturn
 
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QBrush, QColor, QGuiApplication, QPainter, QPen, QPolygon
@@ -8,7 +9,7 @@ from PyQt5.QtWidgets import QApplication, QWidget
 
 
 class OverlayScreen(QWidget):
-    def __init__(self, stockfish_queue):
+    def __init__(self, stockfish_queue) -> None:
         super().__init__()
         self.stockfish_queue = stockfish_queue
 
@@ -28,7 +29,7 @@ class OverlayScreen(QWidget):
         self.message_queue_thread = threading.Thread(target=self.message_queue_thread)
         self.message_queue_thread.start()
 
-    def message_queue_thread(self):
+    def message_queue_thread(self) -> NoReturn:
         """
         This thread is used to receive messages from the stockfish message queue
         and update the arrows
@@ -42,7 +43,7 @@ class OverlayScreen(QWidget):
             message = self.stockfish_queue.get()
             self.set_arrows(message)
 
-    def set_arrows(self, arrows):
+    def set_arrows(self, arrows) -> None:
         """
         This function is used to set the arrows to be drawn on the screen
         Args:
@@ -60,7 +61,7 @@ class OverlayScreen(QWidget):
             self.arrows.append(poly)
         self.update()
 
-    def paint_event(self, event):
+    def paint_event(self, event) -> None:
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setPen(QPen(Qt.GlobalColor.red, 1, Qt.PenStyle.NoPen))
@@ -70,7 +71,7 @@ class OverlayScreen(QWidget):
         painter.end()
 
     @staticmethod
-    def get_arrow_polygon(start_point, end_point):
+    def get_arrow_polygon(start_point, end_point) -> Any:
         """
         This function is used to get the polygon for the arrow
         Args:
@@ -130,7 +131,7 @@ class OverlayScreen(QWidget):
             print(e)
 
 
-def run(stockfish_queue):
+def run(stockfish_queue) -> None:
     """
     This function is used to run the overlay
     Args:

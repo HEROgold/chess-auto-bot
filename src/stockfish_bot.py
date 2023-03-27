@@ -32,7 +32,7 @@ class StockfishBot(multiprocess.Process):
         stockfish_depth,
         memory,
         cpu_threads,
-    ):
+    ) -> None:
         multiprocess.Process.__init__(self)
 
         self.chrome_url = chrome_url
@@ -55,7 +55,7 @@ class StockfishBot(multiprocess.Process):
 
     # Converts a move to screen coordinates
     # Example: "a1" -> (x, y)
-    def move_to_screen_pos(self, move):
+    def move_to_screen_pos(self, move) -> tuple:
         # Get the absolute top left corner of the website
         canvas_x_offset, canvas_y_offset = self.grabber.get_top_left_corner()
 
@@ -76,14 +76,14 @@ class StockfishBot(multiprocess.Process):
 
         return x, y
 
-    def get_move_pos(self, move):
+    def get_move_pos(self, move) -> tuple[tuple, tuple]:
         # Get the start and end position screen coordinates
-        start_pos_x, start_pos_y = self.move_to_screen_pos(move[0:2])
+        start_pos_x, start_pos_y = self.move_to_screen_pos(move[:2])
         end_pos_x, end_pos_y = self.move_to_screen_pos(move[2:4])
 
         return (start_pos_x, start_pos_y), (end_pos_x, end_pos_y)
 
-    def make_move(self, move):
+    def make_move(self, move) -> None:
         # Get the start and end position screen coordinates
         start_pos, end_pos = self.get_move_pos(move)
 
@@ -94,30 +94,34 @@ class StockfishBot(multiprocess.Process):
         # Check for promotion. If there is a promotion,
         # promote to the corresponding piece type
         if len(move) == 5:
-            time.sleep(0.1)
-            end_pos_x = None
-            end_pos_y = None
-            if move[4] == "n":
-                end_pos_x, end_pos_y = self.move_to_screen_pos(
-                    move[2] + str(int(move[3]) - 1)
-                )
-            elif move[4] == "r":
-                end_pos_x, end_pos_y = self.move_to_screen_pos(
-                    move[2] + str(int(move[3]) - 2)
-                )
-            elif move[4] == "b":
-                end_pos_x, end_pos_y = self.move_to_screen_pos(
-                    move[2] + str(int(move[3]) - 3)
-                )
+            self.promote_piece(move)
 
-            pyautogui.moveTo(x=end_pos_x, y=end_pos_y)
-            pyautogui.click(button="left")
+    # TODO Rename this here and in `make_move`
+    def promote_piece(self, move) -> None:
+        time.sleep(0.1)
+        end_pos_x = None
+        end_pos_y = None
+        if move[4] == "n":
+            end_pos_x, end_pos_y = self.move_to_screen_pos(
+                move[2] + str(int(move[3]) - 1)
+            )
+        elif move[4] == "r":
+            end_pos_x, end_pos_y = self.move_to_screen_pos(
+                move[2] + str(int(move[3]) - 2)
+            )
+        elif move[4] == "b":
+            end_pos_x, end_pos_y = self.move_to_screen_pos(
+                move[2] + str(int(move[3]) - 3)
+            )
 
-    def wait_for_gui_to_delete(self):
+        pyautogui.moveTo(x=end_pos_x, y=end_pos_y)
+        pyautogui.click(button="left")
+
+    def wait_for_gui_to_delete(self) -> None:
         while self.pipe.recv() != "DELETE":
             pass
 
-    def run(self):
+    def run(self) -> None:
         if self.website == "chesscom":
             self.grabber = ChesscomGrabber(self.chrome_url, self.chrome_session_id)
         else:

@@ -1,3 +1,4 @@
+from typing import Literal
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 
@@ -5,11 +6,11 @@ from grabbers.grabber import Grabber
 
 
 class ChesscomGrabber(Grabber):
-    def __init__(self, chrome_url, chrome_session_id):
+    def __init__(self, chrome_url, chrome_session_id) -> None:
         super().__init__(chrome_url, chrome_session_id)
         self.moves_list = {}
 
-    def update_board_elem(self):
+    def update_board_elem(self) -> None:
         try:
             self._board_elem = self.chrome.find_element(
                 By.XPATH, "//*[@id='board-vs-personalities']"
@@ -22,7 +23,7 @@ class ChesscomGrabber(Grabber):
             except NoSuchElementException:
                 self._board_elem = None
 
-    def is_white(self):
+    def is_white(self) -> bool | None:
         # Find the square names list
         square_names = None
         try:
@@ -58,26 +59,20 @@ class ChesscomGrabber(Grabber):
 
         # Use this square to determine whether the player is white or black
         num = elem.text
-        if num == "1":
-            return True
+        return num == "1"
 
-        return False
-
-    def is_game_over(self):
+    def is_game_over(self) -> bool:
         try:
             # Find the game over window
             game_over_window = self.chrome.find_element(
                 By.CLASS_NAME, "board-modal-container"
             )
-            if game_over_window is not None:
-                return True
-
-            return False
+            return game_over_window is not None
         except NoSuchElementException:
             # Return False since the game over window is not found
             return False
 
-    def get_move_list(self):
+    def get_move_list(self) -> list | None:
         # Find the moves list
         try:
             move_list_elem = self.chrome.find_element(By.TAG_NAME, "vertical-move-list")
@@ -123,13 +118,13 @@ class ChesscomGrabber(Grabber):
         return list(self.moves_list.values())
 
     @staticmethod
-    def is_game_puzzles():
+    def is_game_puzzles() -> Literal[False]:
         return False
 
     @staticmethod
-    def click_puzzle_next():
+    def click_puzzle_next() -> None:
         pass
 
     @staticmethod
-    def make_mouseless_move(move, move_count):
+    def make_mouseless_move(move, move_count) -> None:
         pass

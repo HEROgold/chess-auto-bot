@@ -16,7 +16,7 @@ from stockfish_bot import StockfishBot
 
 
 class GUI:
-    def __init__(self, master):
+    def __init__(self, master) -> None:
         self.master = master
 
         # Used for closing the threads
@@ -297,13 +297,13 @@ class GUI:
         keyboard_listener_thread.start()
 
     # Detects if the user pressed the close button
-    def on_close_listener(self):
+    def on_close_listener(self) -> None:
         # Set self.exit to True so that the threads will stop
         self.exit = True
         self.master.destroy()
 
     # Detects if the Stockfish Bot process is running
-    def process_checker_thread(self):
+    def process_checker_thread(self) -> None:
         while not self.exit:
             if (
                 self.running
@@ -354,7 +354,7 @@ class GUI:
     # - "ERR_COLOR": Notifies the GUI that the Stockfish Bot can't find the player color
     # - "ERR_MOVES": Notifies the GUI that the Stockfish Bot can't find the moves list
     # - "ERR_GAMEOVER": Notifies the GUI that the current game is already over
-    def process_communicator_thread(self):
+    def process_communicator_thread(self) -> None:
         while not self.exit:
             try:
                 if (
@@ -410,7 +410,7 @@ class GUI:
 
             time.sleep(0.1)
 
-    def keypress_listener_thread(self):
+    def keypress_listener_thread(self) -> None:
         while not self.exit:
             time.sleep(0.1)
             if not self.opened_browser:
@@ -421,7 +421,7 @@ class GUI:
             elif keyboard.is_pressed("2"):
                 self.on_stop_button_listener()
 
-    def on_open_browser_button_listener(self):
+    def on_open_browser_button_listener(self) -> None:
         # Set Opening Browser button state to opening
         self.opening_browser = True
         self.open_browser_button["text"] = "Opening Browser..."
@@ -472,7 +472,7 @@ class GUI:
         self.start_button["state"] = "normal"
         self.start_button.update()
 
-    def on_start_button_listener(self):
+    def on_start_button_listener(self) -> None:
         # Check if Slow mover value is valid
         slow_mover = self.slow_mover.get()
         if slow_mover < 10 or slow_mover > 1000:
@@ -532,7 +532,7 @@ class GUI:
         self.start_button["state"] = "disabled"
         self.start_button.update()
 
-    def on_stop_button_listener(self):
+    def on_stop_button_listener(self) -> None:
         # Stop the Stockfish Bot process
         if self.stockfish_bot_process is not None:
             self.stockfish_bot_process.kill()
@@ -565,13 +565,13 @@ class GUI:
         self.start_button["command"] = self.on_start_button_listener
         self.start_button.update()
 
-    def on_topmost_check_button_listener(self):
+    def on_topmost_check_button_listener(self) -> None:
         if self.enable_topmost.get() == 1:
             self.master.attributes("-topmost", True)
         else:
             self.master.attributes("-topmost", False)
 
-    def on_export_pgn_button_listener(self):
+    def on_export_pgn_button_listener(self) -> None:
         # Create the file dialog
         f = filedialog.asksaveasfile(
             initialfile="match.pgn",
@@ -593,7 +593,7 @@ class GUI:
         f.write(data)
         f.close()
 
-    def on_select_stockfish_button_listener(self):
+    def on_select_stockfish_button_listener(self) -> None:
         # Create the file dialog
         f = filedialog.askopenfilename()
         if f is None:
@@ -605,12 +605,12 @@ class GUI:
         self.stockfish_path_text.update()
 
     # Clears the Treeview
-    def clear_tree(self):
+    def clear_tree(self) -> None:
         self.tree.delete(*self.tree.get_children())
         self.tree.update()
 
     # Inserts a move into the Treeview
-    def insert_move(self, move):
+    def insert_move(self, move) -> None:
         cells_num = sum(
             [len(self.tree.item(i)["values"]) - 1 for i in self.tree.get_children()]
         )
@@ -622,7 +622,7 @@ class GUI:
         self.tree.update()
 
     # Overwrites the Treeview with the given list of moves
-    def set_moves(self, moves):
+    def set_moves(self, moves) -> None:
         self.clear_tree()
 
         # Insert in pairs
@@ -636,7 +636,7 @@ class GUI:
 
         self.tree.update()
 
-    def on_manual_mode_checkbox_listener(self):
+    def on_manual_mode_checkbox_listener(self) -> None:
         if self.enable_manual_mode.get() == 1:
             self.manual_mode_frame.pack(after=self.manual_mode_checkbox)
             self.manual_mode_frame.update()

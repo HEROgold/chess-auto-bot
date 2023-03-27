@@ -15,12 +15,15 @@ class LichessGrabber(Grabber):
     def update_board_elem(self):
         try:
             # Try finding the normal board
-            self._board_elem = self.chrome.find_element(By.XPATH,
-                                                        '//*[@id="main-wrap"]/main/div[1]/div[1]/div/cg-container')
+            self._board_elem = self.chrome.find_element(
+                By.XPATH, '//*[@id="main-wrap"]/main/div[1]/div[1]/div/cg-container'
+            )
         except NoSuchElementException:
             try:
                 # Try finding the board in the puzzles page
-                self._board_elem = self.chrome.find_element(By.XPATH, '/html/body/div[2]/main/div[1]/div/cg-container')
+                self._board_elem = self.chrome.find_element(
+                    By.XPATH, "/html/body/div[2]/main/div[1]/div/cg-container"
+                )
             except NoSuchElementException:
                 self._board_elem = None
 
@@ -30,13 +33,15 @@ class LichessGrabber(Grabber):
         child = [x for x in children if "ranks" in x.get_attribute("class")][0]
         if child.get_attribute("class") == "ranks":
             return True
-        else:
-            return False
+
+        return False
 
     def is_game_over(self):
         try:
             # Find the game over window
-            self.chrome.find_element(By.XPATH, '//*[@id="main-wrap"]/main/aside/div/section[2]')
+            self.chrome.find_element(
+                By.XPATH, '//*[@id="main-wrap"]/main/aside/div/section[2]'
+            )
 
             # If we don't have an exception at this point, we have found the game over window
             return True
@@ -44,7 +49,9 @@ class LichessGrabber(Grabber):
             # Try finding the puzzles game over window and checking its class
             try:
                 # The game over window
-                game_over_window = self.chrome.find_element(By.XPATH, '/html/body/div[2]/main/div[2]/div[3]/div[1]')
+                game_over_window = self.chrome.find_element(
+                    By.XPATH, "/html/body/div[2]/main/div[2]/div[3]/div[1]"
+                )
 
                 if game_over_window.get_attribute("class") == "complete":
                     return True
@@ -86,7 +93,9 @@ class LichessGrabber(Grabber):
 
             if move_list_elem is None:
                 return None
-            if (not move_list_elem) or (self.tag_name is None and self.set_moves_tag_name() is False):
+            if (not move_list_elem) or (
+                self.tag_name is None and self.set_moves_tag_name() is False
+            ):
                 return []
 
         # Get the move elements (children of the move list element)
@@ -94,17 +103,23 @@ class LichessGrabber(Grabber):
             if not is_puzzles:
                 if not self.moves_list:
                     # If the moves list is empty, find all moves
-                    children = move_list_elem.find_elements(By.CSS_SELECTOR, self.tag_name)
+                    children = move_list_elem.find_elements(
+                        By.CSS_SELECTOR, self.tag_name
+                    )
                 else:
                     # If the moves list is not empty, find only the new moves
-                    children = move_list_elem.find_elements(By.CSS_SELECTOR, self.tag_name + ":not([data-processed])")
+                    children = move_list_elem.find_elements(
+                        By.CSS_SELECTOR, self.tag_name + ":not([data-processed])"
+                    )
             else:
                 if not self.moves_list:
                     # If the moves list is empty, find all moves
                     children = move_list_elem.find_elements(By.CSS_SELECTOR, "move")
                 else:
                     # If the moves list is not empty, find only the new moves
-                    children = move_list_elem.find_elements(By.CSS_SELECTOR, "move:not([data-processed])")
+                    children = move_list_elem.find_elements(
+                        By.CSS_SELECTOR, "move:not([data-processed])"
+                    )
         except NoSuchElementException:
             return None
 
@@ -116,14 +131,18 @@ class LichessGrabber(Grabber):
                 self.moves_list[move_element.id] = move
 
             # Mark the move as processed
-            self.chrome.execute_script("arguments[0].setAttribute('data-processed', 'true')", move_element)
+            self.chrome.execute_script(
+                "arguments[0].setAttribute('data-processed', 'true')", move_element
+            )
 
-        return [val for val in self.moves_list.values()]
+        return list(self.moves_list.values())
 
     def get_puzzles_move_list_elem(self):
         try:
             # Try finding the move list in the puzzles page
-            move_list_elem = self.chrome.find_element(By.XPATH, '/html/body/div[2]/main/div[2]/div[2]/div')
+            move_list_elem = self.chrome.find_element(
+                By.XPATH, "/html/body/div[2]/main/div[2]/div[2]/div"
+            )
 
             return move_list_elem
         except NoSuchElementException:
@@ -132,13 +151,17 @@ class LichessGrabber(Grabber):
     def get_normal_move_list_elem(self):
         try:
             # Try finding the normal move list
-            move_list_elem = self.chrome.find_element(By.XPATH, '//*[@id="main-wrap"]/main/div[1]/rm6/l4x')
+            move_list_elem = self.chrome.find_element(
+                By.XPATH, '//*[@id="main-wrap"]/main/div[1]/rm6/l4x'
+            )
 
             return move_list_elem
         except NoSuchElementException:
             try:
                 # Try finding the normal move list when there are no moves yet
-                self.chrome.find_element(By.XPATH, '//*[@id="main-wrap"]/main/div[1]/rm6')
+                self.chrome.find_element(
+                    By.XPATH, '//*[@id="main-wrap"]/main/div[1]/rm6'
+                )
 
                 # If we don't have an exception at this point, we don't have any moves yet
                 return []
@@ -148,7 +171,9 @@ class LichessGrabber(Grabber):
     def is_game_puzzles(self):
         try:
             # Try finding the puzzles text
-            self.chrome.find_element(By.XPATH, "/html/body/div[2]/main/aside/div[1]/div[1]/div/p[1]")
+            self.chrome.find_element(
+                By.XPATH, "/html/body/div[2]/main/aside/div[1]/div[1]/div/p[1]"
+            )
 
             # If we don't have an exception at this point, the game is a puzzle
             return True
@@ -158,10 +183,14 @@ class LichessGrabber(Grabber):
     def click_puzzle_next(self):
         # Find the next continue training button
         try:
-            next_button = self.chrome.find_element(By.XPATH, "/html/body/div[2]/main/div[2]/div[3]/a")
+            next_button = self.chrome.find_element(
+                By.XPATH, "/html/body/div[2]/main/div[2]/div[3]/a"
+            )
         except NoSuchElementException:
             try:
-                next_button = self.chrome.find_element(By.XPATH, '//*[@id="main-wrap"]/main/div[2]/div[3]/div[3]/a[2]')
+                next_button = self.chrome.find_element(
+                    By.XPATH, '//*[@id="main-wrap"]/main/div[2]/div[3]/div[3]/a[2]'
+                )
             except NoSuchElementException:
                 return
 
@@ -169,6 +198,8 @@ class LichessGrabber(Grabber):
         self.chrome.execute_script("arguments[0].click();", next_button)
 
     def make_mouseless_move(self, move, move_count):
-        message = '{"t":"move","d":{"u":"' + move + '","b":1,"a":' + str(move_count) + '}}'
-        script = 'lichess.socket.ws.send(JSON.stringify(' + message + '))'
+        message = (
+            '{"t":"move","d":{"u":"' + move + '","b":1,"a":' + str(move_count) + "}}"
+        )
+        script = "lichess.socket.ws.send(JSON.stringify(" + message + "))"
         self.chrome.execute_script(script)

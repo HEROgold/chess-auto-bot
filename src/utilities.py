@@ -1,5 +1,5 @@
-from selenium.webdriver.remote.webdriver import WebDriver
 from selenium import webdriver
+from selenium.webdriver.remote.webdriver import WebDriver
 
 
 # Converts a chess character into an int
@@ -17,9 +17,9 @@ def attach_to_session(executor_url, session_id):
     def new_command_execute(self, command, params=None):
         if command == "newSession":
             # Mock the response
-            return {'success': 0, 'value': None, 'sessionId': session_id}
-        else:
-            return original_execute(self, command, params)
+            return {"success": 0, "value": None, "sessionId": session_id}
+
+        return original_execute(self, command, params)
 
     # Patch the function before creating the driver object
     WebDriver.execute = new_command_execute

@@ -1,21 +1,38 @@
-from random import random
-
-import multiprocess
-from stockfish import Stockfish
-import pyautogui
-import time
-import sys
 import os
-import chess
 import re
+import sys
+import time
+
+import chess
+import keyboard
+import multiprocess
+import pyautogui
+from stockfish import Stockfish
+
 from grabbers.chesscom_grabber import ChesscomGrabber
 from grabbers.lichess_grabber import LichessGrabber
 from utilities import char_to_num
-import keyboard
 
 
 class StockfishBot(multiprocess.Process):
-    def __init__(self, chrome_url, chrome_session_id, website, pipe, overlay_queue, stockfish_path, enable_manual_mode, enable_mouseless_mode, enable_non_stop_puzzles, bongcloud, slow_mover, skill_level, stockfish_depth, memory, cpu_threads):
+    def __init__(
+        self,
+        chrome_url,
+        chrome_session_id,
+        website,
+        pipe,
+        overlay_queue,
+        stockfish_path,
+        enable_manual_mode,
+        enable_mouseless_mode,
+        enable_non_stop_puzzles,
+        bongcloud,
+        slow_mover,
+        skill_level,
+        stockfish_depth,
+        memory,
+        cpu_threads,
+    ):
         multiprocess.Process.__init__(self)
 
         self.chrome_url = chrome_url
@@ -47,7 +64,7 @@ class StockfishBot(multiprocess.Process):
         board_y = canvas_y_offset + self.grabber.get_board().location["y"]
 
         # Get the square size
-        square_size = self.grabber.get_board().size['width'] / 8
+        square_size = self.grabber.get_board().size["width"] / 8
 
         # Depending on the player color, the board is flipped, so the coordinates need to be adjusted
         if self.is_white:
@@ -66,7 +83,6 @@ class StockfishBot(multiprocess.Process):
 
         return (start_pos_x, start_pos_y), (end_pos_x, end_pos_y)
 
-
     def make_move(self, move):
         # Get the start and end position screen coordinates
         start_pos, end_pos = self.get_move_pos(move)
@@ -82,14 +98,20 @@ class StockfishBot(multiprocess.Process):
             end_pos_x = None
             end_pos_y = None
             if move[4] == "n":
-                end_pos_x, end_pos_y = self.move_to_screen_pos(move[2] + str(int(move[3]) - 1))
+                end_pos_x, end_pos_y = self.move_to_screen_pos(
+                    move[2] + str(int(move[3]) - 1)
+                )
             elif move[4] == "r":
-                end_pos_x, end_pos_y = self.move_to_screen_pos(move[2] + str(int(move[3]) - 2))
+                end_pos_x, end_pos_y = self.move_to_screen_pos(
+                    move[2] + str(int(move[3]) - 2)
+                )
             elif move[4] == "b":
-                end_pos_x, end_pos_y = self.move_to_screen_pos(move[2] + str(int(move[3]) - 3))
+                end_pos_x, end_pos_y = self.move_to_screen_pos(
+                    move[2] + str(int(move[3]) - 3)
+                )
 
             pyautogui.moveTo(x=end_pos_x, y=end_pos_y)
-            pyautogui.click(button='left')
+            pyautogui.click(button="left")
 
     def wait_for_gui_to_delete(self):
         while self.pipe.recv() != "DELETE":
@@ -107,10 +129,14 @@ class StockfishBot(multiprocess.Process):
             "Hash": self.memory,
             "Ponder": "true",
             "Slow Mover": self.slow_mover,
-            "Skill Level": self.skill_level
+            "Skill Level": self.skill_level,
         }
         try:
-            stockfish = Stockfish(path=self.stockfish_path, depth=self.stockfish_depth, parameters=parameters)
+            stockfish = Stockfish(
+                path=self.stockfish_path,
+                depth=self.stockfish_depth,
+                parameters=parameters,
+            )
         except PermissionError:
             self.pipe.send("ERR_PERM")
             return
@@ -163,7 +189,9 @@ class StockfishBot(multiprocess.Process):
             # Start the game loop
             while True:
                 # Act if it is the player's turn
-                if (self.is_white and board.turn == chess.WHITE) or (not self.is_white and board.turn == chess.BLACK):
+                if (self.is_white and board.turn == chess.WHITE) or (
+                    not self.is_white and board.turn == chess.BLACK
+                ):
                     # Think of a move
                     move = None
                     move_count = len(board.move_stack)
@@ -188,9 +216,14 @@ class StockfishBot(multiprocess.Process):
                     self_moved = False
                     if self.enable_manual_mode:
                         move_start_pos, move_end_pos = self.get_move_pos(move)
-                        self.overlay_queue.put([
-                            ((int(move_start_pos[0]), int(move_start_pos[1])), (int(move_end_pos[0]), int(move_end_pos[1]))),
-                        ])
+                        self.overlay_queue.put(
+                            [
+                                (
+                                    (int(move_start_pos[0]), int(move_start_pos[1])),
+                                    (int(move_end_pos[0]), int(move_end_pos[1])),
+                                ),
+                            ]
+                        )
                         while True:
                             if keyboard.is_pressed("3"):
                                 break
@@ -205,11 +238,19 @@ class StockfishBot(multiprocess.Process):
                                 break
 
                     if not self_moved:
-                        move_san = board.san(chess.Move(chess.parse_square(move[0:2]), chess.parse_square(move[2:4])))
+                        move_san = board.san(
+                            chess.Move(
+                                chess.parse_square(move[0:2]),
+                                chess.parse_square(move[2:4]),
+                            )
+                        )
                         board.push_uci(move)
                         stockfish.make_moves_from_current_position([move])
                         move_list.append(move_san)
-                        if self.enable_mouseless_mode and not self.grabber.is_game_puzzles():
+                        if (
+                            self.enable_mouseless_mode
+                            and not self.grabber.is_game_puzzles()
+                        ):
                             self.grabber.make_mouseless_move(move, move_count + 1)
                         else:
                             self.make_move(move)
@@ -222,7 +263,10 @@ class StockfishBot(multiprocess.Process):
                     # Check if the game is over
                     if board.is_checkmate():
                         # Send restart message to GUI
-                        if self.enable_non_stop_puzzles and self.grabber.is_game_puzzles():
+                        if (
+                            self.enable_non_stop_puzzles
+                            and self.grabber.is_game_puzzles()
+                        ):
                             self.grabber.click_puzzle_next()
                             self.pipe.send("RESTART")
                             self.wait_for_gui_to_delete()
@@ -237,7 +281,10 @@ class StockfishBot(multiprocess.Process):
                 while True:
                     if self.grabber.is_game_over():
                         # Send restart message to GUI
-                        if self.enable_non_stop_puzzles and self.grabber.is_game_puzzles():
+                        if (
+                            self.enable_non_stop_puzzles
+                            and self.grabber.is_game_puzzles()
+                        ):
                             self.grabber.click_puzzle_next()
                             self.pipe.send("RESTART")
                             self.wait_for_gui_to_delete()
@@ -263,6 +310,6 @@ class StockfishBot(multiprocess.Process):
                     return
         except Exception as e:
             print(e)
-            exc_type, exc_obj, exc_tb = sys.exc_info()
+            exc_type, _, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
             print(exc_type, fname, exc_tb.tb_lineno)

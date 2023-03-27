@@ -1,6 +1,5 @@
-import os
+import logging
 import re
-import sys
 import time
 
 import chess
@@ -34,6 +33,7 @@ class StockfishBot(multiprocess.Process):
         cpu_threads,
     ) -> None:
         multiprocess.Process.__init__(self)
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
         self.chrome_url = chrome_url
         self.chrome_session_id = chrome_session_id
@@ -55,7 +55,8 @@ class StockfishBot(multiprocess.Process):
 
     # Converts a move to screen coordinates
     # Example: "a1" -> (x, y)
-    def move_to_screen_pos(self, move) -> tuple:
+    def move_to_screen_position(self, move) -> tuple:
+        self.logger.debug(f"converting move to screen position: {move}")
         # Get the absolute top left corner of the website
         canvas_x_offset, canvas_y_offset = self.grabber.get_top_left_corner()
 
@@ -76,16 +77,18 @@ class StockfishBot(multiprocess.Process):
 
         return x, y
 
-    def get_move_pos(self, move) -> tuple[tuple, tuple]:
+    def get_move_position(self, move) -> tuple[tuple, tuple]:
+        self.logger.debug(f"getting move position: {move}")
         # Get the start and end position screen coordinates
-        start_pos_x, start_pos_y = self.move_to_screen_pos(move[:2])
-        end_pos_x, end_pos_y = self.move_to_screen_pos(move[2:4])
+        start_pos_x, start_pos_y = self.move_to_screen_position(move[:2])
+        end_pos_x, end_pos_y = self.move_to_screen_position(move[2:4])
 
         return (start_pos_x, start_pos_y), (end_pos_x, end_pos_y)
 
     def make_move(self, move) -> None:
+        self.logger.debug(f"making move {move}")
         # Get the start and end position screen coordinates
-        start_pos, end_pos = self.get_move_pos(move)
+        start_pos, end_pos = self.get_move_position(move)
 
         # Drag the piece from the start to the end position
         pyautogui.moveTo(start_pos[0], start_pos[1])
@@ -97,19 +100,20 @@ class StockfishBot(multiprocess.Process):
             self.promote_piece(move)
 
     def promote_piece(self, move) -> None:
+        self.logger.debug(f"promoting piece: {move}")
         time.sleep(0.1)
         end_pos_x = None
         end_pos_y = None
         if move[4] == "n":
-            end_pos_x, end_pos_y = self.move_to_screen_pos(
+            end_pos_x, end_pos_y = self.move_to_screen_position(
                 move[2] + str(int(move[3]) - 1)
             )
         elif move[4] == "r":
-            end_pos_x, end_pos_y = self.move_to_screen_pos(
+            end_pos_x, end_pos_y = self.move_to_screen_position(
                 move[2] + str(int(move[3]) - 2)
             )
         elif move[4] == "b":
-            end_pos_x, end_pos_y = self.move_to_screen_pos(
+            end_pos_x, end_pos_y = self.move_to_screen_position(
                 move[2] + str(int(move[3]) - 3)
             )
 
@@ -122,6 +126,7 @@ class StockfishBot(multiprocess.Process):
 
     def _init_stockfish(self) -> None:
         """Initialize Stockfish"""
+        self.logger.debug("initializing stockfish")
         parameters = {
             "Threads": self.cpu_threads,
             "Hash": self.memory,
@@ -143,13 +148,17 @@ class StockfishBot(multiprocess.Process):
             return
 
     def _check_board(self) -> bool:
-        # Return if the board element is not found
-        self.grabber.update_board_elem()
+        """Return if the board element is not found"""
+        self.logger.debug("checking board")
+        self.grabber.update_board_element()
         return self.grabber.get_board() is not None
 
     def _check_starting_position(self) -> list | None:
-        # Get the starting position
-        # Return if the starting position is not found
+        """
+        Get the starting position
+        Return if the starting position is not found
+        """
+        self.logger.debug("checking starting position")
         move_list = self.grabber.get_move_list()
         if move_list is None:
             self.pipe.send("ERR_MOVES")
@@ -157,11 +166,13 @@ class StockfishBot(multiprocess.Process):
         return move_list
 
     def _check_is_white(self) -> bool:
+        self.logger.debug("checking is white")
         self.is_white = self.grabber.is_white()
         return self.is_white is not None
 
     def _check_game_over(self, move_list: list) -> bool:
-        # Check if the game is over
+        """Check if the game is over"""
+        self.logger.debug("checking game over")
         score_pattern = r"(\d+)\-(\d+)"
         if move_list and re.match(score_pattern, move_list[-1]):
             self.pipe.send("ERR_GAMEOVER")
@@ -169,17 +180,21 @@ class StockfishBot(multiprocess.Process):
         return True
 
     def _move_board(self, board: chess.Board, move_list: list) -> list:
-        # Update the board with the starting position
+        """Update the board with the starting position"""
+        self.logger.debug("updating board with starting position")
         for move in move_list:
             board.push_san(move)
         return [move.uci() for move in board.move_stack]
 
     def _send_restart(self) -> None:
+        """sends a gui restart"""
+        self.logger.debug("sending restart")
         self.grabber.click_puzzle_next()
         self.pipe.send("RESTART")
         self.wait_for_gui_to_delete()
 
     def run(self) -> None:
+        self.logger.debug("starting stockfish bot")
         if self.website == "chesscom":
             self.grabber = ChesscomGrabber(self.chrome_url, self.chrome_session_id)
         else:
@@ -220,6 +235,7 @@ class StockfishBot(multiprocess.Process):
 
     def _think_move(self, board: chess.Board, stockfish: Stockfish) -> tuple[str, int]:
         """think of move to make"""
+        self.logger.debug("thinking of move to make")
         move = None
         move_count = len(board.move_stack)
         if not self.bongcloud or move_count > 3:
@@ -246,6 +262,7 @@ class StockfishBot(multiprocess.Process):
             move_list: list
         ) -> None:
         """Start the game loop"""
+        self.logger.debug("starting game loop")
         while True:
             move, move_count = self._think_move(board, stockfish)
 
@@ -255,7 +272,7 @@ class StockfishBot(multiprocess.Process):
             if not self.enable_manual_mode:
                 continue
             
-            move_start_pos, move_end_pos = self.get_move_pos(move)
+            move_start_pos, move_end_pos = self.get_move_position(move)
             self.overlay_queue.put(
                 [
                     (
@@ -275,6 +292,7 @@ class StockfishBot(multiprocess.Process):
                 # pass
 
             while not keyboard.is_pressed("3"):
+                self.logger.debug("user pressed 3")
                 if len(move_list) != len(self.grabber.get_move_list()):
                     self_moved = True
                     move_list = self.grabber.get_move_list()

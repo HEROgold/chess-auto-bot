@@ -1,32 +1,36 @@
 import logging
 from typing import Literal
+
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 from .grabber import Grabber
 
+
 class ChesscomGrabber(Grabber):
     def __init__(self, chrome_url, chrome_session_id) -> None:
         super().__init__(chrome_url, chrome_session_id)
-        self.moves_list = {}
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.moves_list = {}
 
-    def update_board_elem(self) -> None:
-        self.logger.debug(f"Updating board element: {self._board_elem}")
+    def update_board_element(self) -> None:
+        self.logger.debug("Updating board element")
         try:
-            self._board_elem = self.chrome.find_element(
+            self._board_element = self.chrome.find_element(
                 By.XPATH, "//*[@id='board-vs-personalities']"
             )
         except NoSuchElementException:
             try:
-                self._board_elem = self.chrome.find_element(
+                self._board_element = self.chrome.find_element(
                     By.XPATH, "//*[@id='board-single']"
                 )
             except NoSuchElementException:
-                self._board_elem = None
+                self._board_element = None
+        self.logger.debug(f"Updated board element: {self._board_element}")
 
     def is_white(self) -> bool | None:
         # Find the square names list
+        self.logger.debug("checking is white")
         square_names = None
         try:
             coordinates = self.chrome.find_element(
@@ -46,6 +50,7 @@ class ChesscomGrabber(Grabber):
                 return None
 
         # Find the square with the smallest x and biggest y values (bottom left number)
+        self.logger.debug("finding bottom left square")
         elem = None
         min_x = None
         max_y = None
@@ -60,10 +65,12 @@ class ChesscomGrabber(Grabber):
                 elem = name_element
 
         # Use this square to determine whether the player is white or black
+        self.logger.debug("determining if player is black of white")
         num = elem.text
         return num == "1"
 
     def is_game_over(self) -> bool:
+        self.logger.debug("checking game over")
         try:
             # Find the game over window
             game_over_window = self.chrome.find_element(
@@ -75,6 +82,7 @@ class ChesscomGrabber(Grabber):
             return False
 
     def get_move_list(self) -> list | None:
+        self.logger.debug("getting moves list")
         # Find the moves list
         try:
             move_list_elem = self.chrome.find_element(By.TAG_NAME, "vertical-move-list")

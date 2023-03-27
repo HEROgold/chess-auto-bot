@@ -1,3 +1,4 @@
+import logging
 import re
 
 from selenium.common import NoSuchElementException
@@ -10,10 +11,12 @@ from .grabber import Grabber
 class LichessGrabber(Grabber):
     def __init__(self, chrome_url, chrome_session_id) -> None:
         super().__init__(chrome_url, chrome_session_id)
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.tag_name = None
         self.moves_list = {}
 
-    def update_board_elem(self) -> None:
+    def update_board_element(self) -> None:
+        self.logger.debug("updating board element")
         try:
             # Try finding the normal board
             self._board_elem = self.chrome.find_element(
@@ -30,11 +33,13 @@ class LichessGrabber(Grabber):
 
     def is_white(self) -> bool:
         # Get "ranks" child
+        self.logger.debug("checking is white")
         children = self._board_elem.find_elements(By.XPATH, "./*")
         child = [x for x in children if "ranks" in x.get_attribute("class")][0]
         return child.get_attribute("class") == "ranks"
 
     def is_game_over(self) -> bool:
+        self.logger.debug("checking game over")
         try:
             # Find the game over window
             self.chrome.find_element(
@@ -55,6 +60,7 @@ class LichessGrabber(Grabber):
                 return False
 
     def set_moves_tag_name(self) -> bool:
+        self.logger.debug("setting moves tag name")
         if self.is_game_puzzles():
             return False
 
@@ -72,6 +78,7 @@ class LichessGrabber(Grabber):
             return False
 
     def get_move_list(self) -> list | None:
+        self.logger.debug("getting moves list")
         is_puzzles = self.is_game_puzzles()
         # Find the move list element
         if is_puzzles:
@@ -91,6 +98,7 @@ class LichessGrabber(Grabber):
 
     def get_move_element(self, move_list_element: WebElement, is_puzzles: bool) -> list | None:
         # Get the move elements (children of the move list element)
+        self.logger.debug("getting move element")
         try:
             if not is_puzzles:
                 children = (
@@ -128,6 +136,7 @@ class LichessGrabber(Grabber):
         return list(self.moves_list.values())
 
     def get_puzzles_move_list_element(self) -> WebElement | None:
+        self.logger.debug("getting puzzles move list element")
         try:
             return self.chrome.find_element(
                 By.XPATH, "/html/body/div[2]/main/div[2]/div[2]/div"
@@ -136,6 +145,7 @@ class LichessGrabber(Grabber):
             return None
 
     def get_normal_move_list_element(self) -> WebElement | list | None:
+        self.logger.debug("getting normal move list element")
         try:
             return self.chrome.find_element(
                 By.XPATH, '//*[@id="main-wrap"]/main/div[1]/rm6/l4x'
@@ -153,6 +163,7 @@ class LichessGrabber(Grabber):
                 return None
 
     def is_game_puzzles(self) -> bool:
+        self.logger.debug("checking if games are puzzles")
         try:
             # Try finding the puzzles text
             self.chrome.find_element(
@@ -165,6 +176,7 @@ class LichessGrabber(Grabber):
             return False
 
     def click_puzzle_next(self) -> None:
+        self.logger.debug("clicking puzzle next")
         # Find the next continue training button
         try:
             next_button = self.chrome.find_element(
@@ -182,6 +194,7 @@ class LichessGrabber(Grabber):
         self.chrome.execute_script("arguments[0].click();", next_button)
 
     def make_mouseless_move(self, move, move_count) -> None:
+        self.logger.debug("making mouseless move")
         message = (
             '{"t":"move","d":{"u":"' + move + '","b":1,"a":' + str(move_count) + "}}"
         )

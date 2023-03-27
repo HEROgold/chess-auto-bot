@@ -1,4 +1,4 @@
-import multiprocessing
+import logging
 import threading
 import time
 import tkinter as tk
@@ -18,6 +18,7 @@ open_browser_text = "Open Browser"
 
 class GUI:
     def __init__(self, master: tk.Tk) -> None:
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.master = master
 
         # Used for closing the threads
@@ -299,12 +300,14 @@ class GUI:
 
     # Detects if the user pressed the close button
     def on_close_listener(self) -> None:
+        self.logger.debug("close button pressed")
         # Set self.exit to True so that the threads will stop
         self.exit = True
         self.master.destroy()
 
     # Detects if the Stockfish Bot process is running
     def process_checker_thread(self) -> None:
+        self.logger.debug("checking stockfish process")
         while not self.exit:
             if (
                 self.running
@@ -321,6 +324,7 @@ class GUI:
 
     # Detects if Selenium Chromedriver is running
     def browser_checker_thread(self) -> None:
+        self.logger.debug("checking browser process")
         while not self.exit:
             try:
                 if (
@@ -615,6 +619,7 @@ class GUI:
 
     # Inserts a move into the Treeview
     def insert_move(self, move) -> None:
+        self.logger.debug(f"inserting move: {move}")
         cells_num = sum(
             [len(self.tree.item(i)["values"]) - 1 for i in self.tree.get_children()]
         )
@@ -644,7 +649,9 @@ class GUI:
         if self.enable_manual_mode.get() == 1:
             self.manual_mode_frame.pack(after=self.manual_mode_checkbox)
             self.manual_mode_frame.update()
+            self.logger.debug("enabled manual mode")
         else:
             self.manual_mode_frame.pack_forget()
             self.manual_mode_checkbox.update()
+            self.logger.debug("disabled manual mode")
 

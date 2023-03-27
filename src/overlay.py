@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QApplication, QWidget
 class OverlayScreen(QWidget):
     def __init__(self, stockfish_queue) -> None:
         super().__init__()
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"CAB.{self.__class__.__name__}")
         self.stockfish_queue = stockfish_queue
 
         # Set the window to be the size of the screen

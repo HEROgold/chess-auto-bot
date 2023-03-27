@@ -10,7 +10,7 @@ from .grabber import Grabber
 class ChesscomGrabber(Grabber):
     def __init__(self, chrome_url, chrome_session_id) -> None:
         super().__init__(chrome_url, chrome_session_id)
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"CAB.{self.__class__.__name__}")
         self.moves_list = {}
 
     def update_board_element(self) -> None:

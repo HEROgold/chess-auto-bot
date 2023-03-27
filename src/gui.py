@@ -18,7 +18,7 @@ open_browser_text = "Open Browser"
 
 class GUI:
     def __init__(self, master: tk.Tk) -> None:
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"CAB.{self.__class__.__name__}")
         self.master = master
 
         # Used for closing the threads

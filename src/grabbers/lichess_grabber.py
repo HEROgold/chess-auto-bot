@@ -11,7 +11,7 @@ from .grabber import Grabber
 class LichessGrabber(Grabber):
     def __init__(self, chrome_url, chrome_session_id) -> None:
         super().__init__(chrome_url, chrome_session_id)
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"CAB.{self.__class__.__name__}")
         self.tag_name = None
         self.moves_list = {}
 

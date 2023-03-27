@@ -33,7 +33,7 @@ class StockfishBot(multiprocess.Process):
         cpu_threads,
     ) -> None:
         multiprocess.Process.__init__(self)
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logging.getLogger(f"CAB.{self.__class__.__name__}")
 
         self.chrome_url = chrome_url
         self.chrome_session_id = chrome_session_id

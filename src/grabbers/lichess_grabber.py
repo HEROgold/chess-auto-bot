@@ -32,10 +32,7 @@ class LichessGrabber(Grabber):
         # Get "ranks" child
         children = self._board_elem.find_elements(By.XPATH, "./*")
         child = [x for x in children if "ranks" in x.get_attribute("class")][0]
-        if child.get_attribute("class") == "ranks":
-            return True
-
-        return False
+        return child.get_attribute("class") == "ranks"
 
     def is_game_over(self) -> bool:
         try:
@@ -53,13 +50,7 @@ class LichessGrabber(Grabber):
                 game_over_window = self.chrome.find_element(
                     By.XPATH, "/html/body/div[2]/main/div[2]/div[3]/div[1]"
                 )
-
-                if game_over_window.get_attribute("class") == "complete":
-                    return True
-
-                # If we don't have an exception at this point and the window's class is not "complete",
-                # then the game is still going
-                return False
+                return game_over_window.get_attribute("class") == "complete"
             except NoSuchElementException:
                 return False
 
@@ -67,7 +58,7 @@ class LichessGrabber(Grabber):
         if self.is_game_puzzles():
             return False
 
-        move_list_elem = self.get_normal_move_list_elem()
+        move_list_elem = self.get_normal_move_list_element()
 
         if move_list_elem is None or move_list_elem == []:
             return False
@@ -82,42 +73,42 @@ class LichessGrabber(Grabber):
 
     def get_move_list(self) -> list | None:
         is_puzzles = self.is_game_puzzles()
-
         # Find the move list element
         if is_puzzles:
-            move_list_elem = self.get_puzzles_move_list_elem()
-
-            if move_list_elem is None:
+            move_list_element = self.get_puzzles_move_list_element()
+            if not move_list_element:
                 return None
         else:
-            move_list_elem = self.get_normal_move_list_elem()
-
-            if move_list_elem is None:
+            move_list_element = self.get_normal_move_list_element()
+            if not move_list_element:
                 return None
-            if (not move_list_elem) or (
-                self.tag_name is None and self.set_moves_tag_name() is False
+            if (
+                self.tag_name is None 
+                and self.set_moves_tag_name() is False
             ):
                 return []
+        self.get_move_element(move_list_element, is_puzzles)
 
+    def get_move_element(self, move_list_element: WebElement, is_puzzles: bool) -> list | None:
         # Get the move elements (children of the move list element)
         try:
             if not is_puzzles:
                 children = (
-                    move_list_elem.find_elements(
+                    move_list_element.find_elements(
                         By.CSS_SELECTOR, f"{self.tag_name}:not([data-processed])"
                     )
                     if self.moves_list
-                    else move_list_elem.find_elements(
+                    else move_list_element.find_elements(
                         By.CSS_SELECTOR, self.tag_name
                     )
                 )
             else:
                 children = (
-                    move_list_elem.find_elements(
+                    move_list_element.find_elements(
                         By.CSS_SELECTOR, "move:not([data-processed])"
                     )
                     if self.moves_list
-                    else move_list_elem.find_elements(By.CSS_SELECTOR, "move")
+                    else move_list_element.find_elements(By.CSS_SELECTOR, "move")
                 )
         except NoSuchElementException:
             return None
@@ -136,7 +127,7 @@ class LichessGrabber(Grabber):
 
         return list(self.moves_list.values())
 
-    def get_puzzles_move_list_elem(self) -> WebElement | None:
+    def get_puzzles_move_list_element(self) -> WebElement | None:
         try:
             return self.chrome.find_element(
                 By.XPATH, "/html/body/div[2]/main/div[2]/div[2]/div"
@@ -144,7 +135,7 @@ class LichessGrabber(Grabber):
         except NoSuchElementException:
             return None
 
-    def get_normal_move_list_elem(self) -> WebElement | list | None:
+    def get_normal_move_list_element(self) -> WebElement | list | None:
         try:
             return self.chrome.find_element(
                 By.XPATH, '//*[@id="main-wrap"]/main/div[1]/rm6/l4x'

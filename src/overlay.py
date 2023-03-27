@@ -81,12 +81,12 @@ class OverlayScreen(QWidget):
         Returns:
             A QPolygon object containing the points of the arrow
         """
-        (dx, dy) = (
+        dx, dy = (
             start_point.x() - end_point.x(),
             start_point.y() - end_point.y(),
         )
         length = math.sqrt(dx**2 + dy**2)
-        (norm_x, norm_y) = (dx / length, dy / length)
+        norm_x, norm_y = (dx / length, dy / length)
         perp_x = -norm_y
         perp_y = norm_x
         arrow_height = 25

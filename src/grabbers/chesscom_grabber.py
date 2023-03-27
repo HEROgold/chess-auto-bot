@@ -1,16 +1,18 @@
+import logging
 from typing import Literal
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 from .grabber import Grabber
 
-
 class ChesscomGrabber(Grabber):
     def __init__(self, chrome_url, chrome_session_id) -> None:
         super().__init__(chrome_url, chrome_session_id)
         self.moves_list = {}
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def update_board_elem(self) -> None:
+        self.logger.debug(f"Updating board element: {self._board_elem}")
         try:
             self._board_elem = self.chrome.find_element(
                 By.XPATH, "//*[@id='board-vs-personalities']"

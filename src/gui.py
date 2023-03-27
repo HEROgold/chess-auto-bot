@@ -364,7 +364,7 @@ class GUI:
                 ):
                     continue
                 
-                # TODO: change to match case
+                # TODO: use match case
                 data = self.stockfish_bot_pipe.recv()
                 if data == "START":
                     self.clear_tree()

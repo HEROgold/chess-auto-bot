@@ -20,8 +20,8 @@ class StockfishBot(multiprocess.Process):
         chrome_url,
         chrome_session_id,
         website,
-        pipe,
-        overlay_queue,
+        pipe, # multiprocess.Pipe
+        overlay_queue, # multiprocces.Queue
         stockfish_path,
         enable_manual_mode,
         enable_mouseless_mode,
@@ -96,7 +96,6 @@ class StockfishBot(multiprocess.Process):
         if len(move) == 5:
             self.promote_piece(move)
 
-    # TODO Rename this here and in `make_move`
     def promote_piece(self, move) -> None:
         time.sleep(0.1)
         end_pos_x = None
@@ -217,50 +216,72 @@ class StockfishBot(multiprocess.Process):
         # Send the first moves to the GUI (if there are any)
         if len(move_list) > 0:
             self.pipe.send("M_MOVE" + ",".join(move_list))
+        self._game_loop(board, stockfish)
 
-        # Start the game loop
+    def _think_move(self, board: chess.Board, stockfish: Stockfish) -> tuple[str, int]:
+        """think of move to make"""
+        move = None
+        move_count = len(board.move_stack)
+        if not self.bongcloud or move_count > 3:
+            return stockfish.get_best_move(), move_count
+        if move_count == 0:
+            move = "e2e3"
+        elif move_count == 1:
+            move = "e7e6"
+        elif move_count == 2:
+            move = "e1e2"
+        elif move_count == 3:
+            move = "e8e7"
+
+        # Hardcoded bongcloud move is not legal,
+        # so find a legal move
+        if not board.is_legal(chess.Move.from_uci(move)):
+            return stockfish.get_best_move(), move_count
+
+
+    def _game_loop(
+            self,
+            board: chess.Board,
+            stockfish: Stockfish
+        ) -> None:
+        """Start the game loop"""
         while True:
-            # Think of a move
-            move = None
-            move_count = len(board.move_stack)
-            if self.bongcloud and move_count <= 3:
-                if move_count == 0:
-                    move = "e2e3"
-                elif move_count == 1:
-                    move = "e7e6"
-                elif move_count == 2:
-                    move = "e1e2"
-                elif move_count == 3:
-                    move = "e8e7"
-
-                # Hardcoded bongcloud move is not legal,
-                # so find a legal move
-                if not board.is_legal(chess.Move.from_uci(move)):
-                    move = stockfish.get_best_move()
-            else:
-                move = stockfish.get_best_move()
+            move, move_count = self._think_move(board, stockfish)
 
             # Wait for keypress or player movement if in manual mode
             self_moved = False
-            if self.enable_manual_mode:
-                move_start_pos, move_end_pos = self.get_move_pos(move)
-                self.overlay_queue.put(
-                    [
-                        (
-                            (int(move_start_pos[0]), int(move_start_pos[1])),
-                            (int(move_end_pos[0]), int(move_end_pos[1])),
-                        ),
-                    ]
-                )
-                while not keyboard.is_pressed("3"):
-                    if len(move_list) != len(self.grabber.get_move_list()):
-                        self_moved = True
-                        move_list = self.grabber.get_move_list()
-                        move_san = move_list[-1]
-                        move = board.parse_san(move_san).uci()
-                        board.push_uci(move)
-                        stockfish.make_moves_from_current_position([move])
-                        break
+
+            if not self.enable_manual_mode:
+                continue
+            
+            move_start_pos, move_end_pos = self.get_move_pos(move)
+            self.overlay_queue.put(
+                [
+                    (
+                        (int(move_start_pos[0]), int(move_start_pos[1])),
+                        (int(move_end_pos[0]), int(move_end_pos[1])),
+                    ),
+                ]
+            )
+            
+            # TODO: use guard clauses
+            # if (
+                # not keyboard.is_pressed("3") 
+                # and len(move_list) == len(
+                    # self.grabber.get_move_list()
+                # )
+            # ):
+                # pass
+
+            while not keyboard.is_pressed("3"):
+                if len(move_list) != len(self.grabber.get_move_list()):
+                    self_moved = True
+                    move_list = self.grabber.get_move_list()
+                    move_san = move_list[-1]
+                    move = board.parse_san(move_san).uci()
+                    board.push_uci(move)
+                    stockfish.make_moves_from_current_position([move])
+                    break
 
             if not self_moved:
                 move_san = board.san(
